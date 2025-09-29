@@ -172,7 +172,7 @@
     <!-- Paso 4: Seguimiento -->
     <div class="step" id="step4">
       <h2>4. Seguimiento</h2>
-      <p>Estado: 🚚 En tránsito hacia <span id="destinoSeguimiento"></span></p>
+      <p>Estado: 🚚 En camino hacia ti.</p>
       <div class="alertaMsg" id="alertaTransporte" style="display:none;"></div>
       <button onclick="nextStep()">Continuar</button>
       <button class="alerta" onclick="simularDesvio()">Simular desvío ⚠️</button>
@@ -203,7 +203,6 @@
     }
 
     function validarTelefono(input) {
-      // Solo permite números (sin límite de longitud)
       input.value = input.value.replace(/[^0-9]/g, '');
     }
 
@@ -247,13 +246,9 @@
       document.getElementById("step" + currentStep).classList.add("active");
       updateProgress();
 
-      if (currentStep === 4) {
-        document.getElementById("destinoSeguimiento").innerText = datos.direccion;
-      }
-
       if (currentStep === 5) {
         document.getElementById("mensajeEntrega").innerHTML =
-          `El paquete con <b>${datos.contenido}</b> fue entregado exitosamente a <b>${datos.nombre}</b> 📞 (${datos.telefono}). 🎉`;
+          `✅ El paquete fue entregado exitosamente.`;
         document.getElementById("alertaEntrega").style.display = "none";
       }
     }
