@@ -1,459 +1,286 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sistema de Envíos — Prototipo</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>Sistema de Envíos Interactivo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 600px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .progress {
+      height: 12px;
+      background: #ddd;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: #3498db;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .step {
+      display: none;
+    }
+
+    .step.active {
+      display: block;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      text-align: left;
+    }
+
+    input, select {
+      width: 95%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      margin: 8px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #3498db;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button.alerta {
+      background: #e74c3c;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .alertaMsg {
+      color: #e74c3c;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+
+    footer {
+      margin-top: 30px;
+      padding: 15px;
+      background: #2c3e50;
+      color: white;
+      font-size: 14px;
+    }
+
+    .resumen {
+      text-align: left;
+      margin-top: 15px;
+      background: #f0f8ff;
+      padding: 10px;
+      border-radius: 6px;
+    }
+  </style>
 </head>
-<body class="bg-slate-900 min-h-screen text-slate-100 flex items-center justify-center p-6">
+<body>
 
-  <div class="w-full max-w-3xl">
-    <header class="mb-6 text-center">
-      <h1 class="text-2xl font-bold">📦 Sistema de Envíos — Prototipo Interactivo</h1>
-      <p class="text-sm text-slate-400 mt-1">Flujo: Registro → Validación → Clasificación → Transporte → Entrega (con alertas y corrección)</p>
-    </header>
+  <header>
+    <h1>📦 Sistema de Envíos</h1>
+    <p>Flujo interactivo con datos del paquete</p>
+  </header>
 
-    <!-- Barra de progreso -->
-    <div id="progress" class="mb-6"></div>
+  <div class="container">
+    <div class="progress">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
 
-    <!-- Contenedor principal -->
-    <div id="app" class="bg-slate-800 rounded-2xl p-6 shadow-lg"></div>
+    <!-- Paso 1: Registro -->
+    <div class="step active" id="step1">
+      <h2>1. Registro del envío</h2>
+      <form id="formRegistro">
+        <label>Nombre del destinatario:</label>
+        <input type="text" id="nombre" required>
 
-    <!-- Panel de estadísticas / morfogénesis -->
-    <aside class="mt-6 bg-slate-700 rounded-lg p-4 text-sm text-slate-200">
-      <h3 class="font-semibold">Estadísticas del sistema</h3>
-      <div id="stats" class="mt-2 space-y-1">
-        <!-- Se llena por JS -->
-      </div>
-      <p id="morphoMsg" class="mt-3 text-xs text-slate-300"></p>
-    </aside>
+        <label>Número de teléfono:</label>
+        <input 
+          type="text" 
+          id="telefono" 
+          placeholder="Ej: 3001234567" 
+          required 
+          oninput="validarTelefono(this)">
+
+        <label>Dirección de destino:</label>
+        <input type="text" id="direccion" required>
+
+        <label>Peso del paquete (kg):</label>
+        <input type="number" id="peso" min="0.1" step="0.1" required>
+
+        <label>Contenido del paquete:</label>
+        <input type="text" id="contenido" required>
+
+        <label>¿Es frágil?</label>
+        <select id="fragil" required>
+          <option value="Sí">Sí</option>
+          <option value="No">No</option>
+        </select>
+      </form>
+      <button onclick="guardarDatos()">Continuar</button>
+    </div>
+
+    <!-- Paso 2: Confirmación -->
+    <div class="step" id="step2">
+      <h2>2. Confirmación</h2>
+      <p>Verifica que los datos sean correctos:</p>
+      <div class="resumen" id="resumenDatos"></div>
+      <div class="alertaMsg" id="alertaConfirmacion" style="display:none;"></div>
+      <button onclick="nextStep()">Confirmar ✅</button>
+      <button onclick="restart()">Corregir ❌</button>
+    </div>
+
+    <!-- Paso 3: Envío -->
+    <div class="step" id="step3">
+      <h2>3. Envío del paquete</h2>
+      <p>El paquete ha sido despachado hacia el destino.</p>
+      <button onclick="nextStep()">Continuar</button>
+    </div>
+
+    <!-- Paso 4: Seguimiento -->
+    <div class="step" id="step4">
+      <h2>4. Seguimiento</h2>
+      <p>Estado: 🚚 En tránsito hacia <span id="destinoSeguimiento"></span></p>
+      <div class="alertaMsg" id="alertaTransporte" style="display:none;"></div>
+      <button onclick="nextStep()">Continuar</button>
+      <button class="alerta" onclick="simularDesvio()">Simular desvío ⚠️</button>
+    </div>
+
+    <!-- Paso 5: Entrega -->
+    <div class="step" id="step5">
+      <h2>5. Entrega</h2>
+      <p id="mensajeEntrega"></p>
+      <div class="alertaMsg" id="alertaEntrega" style="display:none;"></div>
+      <button onclick="restart()">Reiniciar</button>
+      <button class="alerta" onclick="simularEntregaFallida()">Simular fallo ❌</button>
+    </div>
   </div>
 
-<script>
-/*
-  Prototipo completo:
-  - Fases: 1=Registro, 2=Validación, 3=Clasificación, 4=Transporte, 5=Entrega OK, 6=Entrega fallida, 7=Corrección/Alertas, 8=Resumen final
-  - Almacena estadísticas en localStorage y aplica una "morfogénesis" simple: la tasa de mala clasificación disminuye tras aprender de fallos.
-*/
+  <footer>
+    <p>Proyecto académico - Sistema de Envíos</p>
+  </footer>
 
-/* --- Estado global --- */
-let step = 1;
-let paquete = {};
-let lastProblem = ""; // texto descriptivo del último problema
-const DEFAULT_MISCLASS_RATE = 0.20; // 20% probabilidad inicial de mala clasificación
-const MIN_MISCLASS_RATE = 0.05; // límite inferior
-const LEARNING_FACTOR = 0.95; // cada fallo reduce la tasa multiplicando por este factor
+  <script>
+    let currentStep = 1;
+    const totalSteps = 5;
+    let datos = {};
 
-/* Inicializar almacenamiento */
-function loadOrInit() {
-  if (!localStorage.getItem('misclassRate')) {
-    localStorage.setItem('misclassRate', DEFAULT_MISCLASS_RATE.toString());
-    localStorage.setItem('initialMisclassRate', DEFAULT_MISCLASS_RATE.toString());
-  }
-  if (!localStorage.getItem('envios_stats')) {
-    const s = { total: 0, failures: 0, classFailures: 0, alerts: 0, feedbacks: 0 };
-    localStorage.setItem('envios_stats', JSON.stringify(s));
-  }
-}
-loadOrInit();
+    function updateProgress() {
+      const percent = ((currentStep - 1) / (totalSteps - 1)) * 100;
+      document.getElementById("progressBar").style.width = percent + "%";
+    }
 
-/* --- Helpers de stats --- */
-function getMisclassRate() {
-  return parseFloat(localStorage.getItem('misclassRate') || DEFAULT_MISCLASS_RATE);
-}
-function setMisclassRate(v) {
-  localStorage.setItem('misclassRate', v.toString());
-}
-function getStats() {
-  return JSON.parse(localStorage.getItem('envios_stats') || '{"total":0}');
-}
-function saveStats(s) {
-  localStorage.setItem('envios_stats', JSON.stringify(s));
-}
-function incStat(key) {
-  const s = getStats();
-  s[key] = (s[key] || 0) + 1;
-  saveStats(s);
-}
+    function validarTelefono(input) {
+      // Solo permite números (sin límite de longitud)
+      input.value = input.value.replace(/[^0-9]/g, '');
+    }
 
-/* --- Render de barra de progreso (colores por fase) --- */
-const stepsMeta = [
-  { id: 1, label: 'Registro', color: 'bg-blue-600' },
-  { id: 2, label: 'Validación', color: 'bg-emerald-600' },
-  { id: 3, label: 'Clasificación', color: 'bg-amber-500' },
-  { id: 4, label: 'Transporte', color: 'bg-violet-600' },
-  { id: 5, label: 'Entrega', color: 'bg-slate-500' },
-];
+    function guardarDatos() {
+      const nombre = document.getElementById("nombre").value;
+      const telefono = document.getElementById("telefono").value;
+      const direccion = document.getElementById("direccion").value;
+      const peso = document.getElementById("peso").value;
+      const contenido = document.getElementById("contenido").value;
+      const fragil = document.getElementById("fragil").value;
 
-function renderProgress() {
-  const container = document.getElementById('progress');
-  container.innerHTML = '';
-  const row = document.createElement('div');
-  row.className = 'flex gap-2 items-center';
-  stepsMeta.forEach(s => {
-    const isActive = step === s.id;
-    const box = document.createElement('div');
-    box.className = `flex-1 rounded-lg p-2 text-center text-xs font-medium ${isActive ? s.color : 'bg-slate-700/50'} ${isActive ? 'shadow-lg' : ''}`;
-    box.textContent = s.label;
-    row.appendChild(box);
-  });
-  container.appendChild(row);
-}
+      if (nombre && telefono && direccion && peso && contenido && fragil) {
+        datos = { nombre, telefono, direccion, peso, contenido, fragil };
 
-/* --- Render principal (pantallas) --- */
-function renderApp() {
-  renderProgress();
-  const app = document.getElementById('app');
-  app.innerHTML = '';
+        document.getElementById("resumenDatos").innerHTML = `
+          <b>Destinatario:</b> ${nombre}<br>
+          <b>Teléfono:</b> ${telefono}<br>
+          <b>Dirección:</b> ${direccion}<br>
+          <b>Peso:</b> ${peso} kg<br>
+          <b>Contenido:</b> ${contenido}<br>
+          <b>Frágil:</b> ${fragil}
+        `;
 
-  // Paso 1: Registro
-  if (step === 1) {
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3">Registro y recepción</h2>
-      <div class="space-y-3">
-        <input id="nombre" placeholder="Nombre remitente" class="w-full p-2 rounded-md bg-slate-900 border border-slate-700" />
-        <input id="direccion" placeholder="Dirección destinatario" class="w-full p-2 rounded-md bg-slate-900 border border-slate-700" />
-        <input id="telefono" placeholder="Teléfono" class="w-full p-2 rounded-md bg-slate-900 border border-slate-700" />
-        <input id="peso" placeholder="Peso (kg)" class="w-full p-2 rounded-md bg-slate-900 border border-slate-700" />
-        <input id="contenido" placeholder="Descripción del contenido (ej: Vasos de vidrio)" class="w-full p-2 rounded-md bg-slate-900 border border-slate-700" />
-        <label class="block text-sm text-slate-300">¿Es frágil?</label>
-        <select id="fragil" class="w-full p-2 rounded-md bg-slate-900 border border-slate-700">
-          <option value="no">No</option>
-          <option value="si">Sí</option>
-        </select>
-        <div class="flex gap-2">
-          <button onclick="guardarDatos()" class="flex-1 bg-blue-600 rounded-md py-2">Registrar paquete</button>
-          <button onclick="resetAll()" class="flex-1 border border-slate-600 rounded-md py-2">Limpiar</button>
-        </div>
-        <p id="regError" class="text-xs text-red-400"></p>
-      </div>
-    `;
-  }
+        if (peso <= 0) {
+          document.getElementById("alertaConfirmacion").style.display = "block";
+          document.getElementById("alertaConfirmacion").innerText = "⚠️ El peso ingresado no es válido.";
+        } else {
+          document.getElementById("alertaConfirmacion").style.display = "none";
+        }
 
-  // Paso 2: Validación
-  if (step === 2) {
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3">Validación de datos</h2>
-      <div class="bg-slate-900 rounded-lg p-4 border border-slate-700">
-        <p><strong>Nombre:</strong> ${escapeHtml(paquete.nombre)}</p>
-        <p><strong>Dirección:</strong> ${escapeHtml(paquete.direccion)}</p>
-        <p><strong>Teléfono:</strong> ${escapeHtml(paquete.telefono)}</p>
-        <p><strong>Peso:</strong> ${escapeHtml(paquete.peso)}</p>
-        <p><strong>Contenido:</strong> ${escapeHtml(paquete.contenido)}</p>
-        <p><strong>Etiqueta:</strong> <span class="${paquete.fragil === 'si' ? 'text-red-300' : 'text-emerald-300'}">${paquete.fragil === 'si' ? 'Frágil 🚨' : 'No frágil ✅'}</span></p>
-        <div class="mt-4 flex gap-2">
-          <button onclick="nextStep(3)" class="flex-1 bg-emerald-600 py-2 rounded-md">Continuar (Validado)</button>
-          <button onclick="nextStep(1)" class="flex-1 border border-slate-600 py-2 rounded-md">Corregir</button>
-        </div>
-      </div>
-    `;
-  }
+        nextStep();
+      } else {
+        alert("Por favor completa todos los campos");
+      }
+    }
 
-  // Paso 3: Clasificación (simulación)
-  if (step === 3) {
-    const mis = Math.round(getMisclassRate()*100) + '%';
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3">Fase de Clasificación</h2>
-      <div class="bg-amber-900/10 rounded-lg p-4 border border-amber-700">
-        <p>Clasificación automática en curso... <span class="text-xs text-slate-400">Tasa de fallo actual: ${mis}</span></p>
-        <div class="mt-4 flex gap-2">
-          <button onclick="runClassification(true)" class="flex-1 bg-amber-500 py-2 rounded-md">Simular clasificación automática</button>
-          <button onclick="forceClass('ok')" class="flex-1 bg-emerald-600 py-2 rounded-md">Forzar: correctamente clasificado</button>
-          <button onclick="forceClass('bad')" class="flex-1 bg-red-600 py-2 rounded-md">Forzar: mal clasificado</button>
-        </div>
-        <p class="mt-3 text-sm text-slate-300">Si hay mal clasificación aparece un punto entrópico (ineficiencia) y se activa la corrección.</p>
-      </div>
-    `;
-  }
+    function nextStep() {
+      document.getElementById("step" + currentStep).classList.remove("active");
+      currentStep++;
+      if (currentStep > totalSteps) currentStep = totalSteps;
+      document.getElementById("step" + currentStep).classList.add("active");
+      updateProgress();
 
-  // Paso 4: Transporte (y simulación de alertas)
-  if (step === 4) {
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3">Fase de Transporte</h2>
-      <div class="bg-violet-900/10 rounded-lg p-4 border border-violet-700">
-        <p>Estado: En tránsito hacia destino.</p>
-        <p class="text-sm text-slate-400 mt-2">Opciones de simulación de punto de alerta (según diagrama):</p>
-        <div class="mt-3 flex gap-2">
-          <button onclick="simulateAlert('retraso')" class="flex-1 bg-yellow-500 py-2 rounded-md">Simular retraso en clasificación</button>
-          <button onclick="simulateAlert('desvio')" class="flex-1 bg-red-600 py-2 rounded-md">Simular vehículo desviado</button>
-        </div>
-        <div class="mt-3 flex gap-2">
-          <button onclick="attemptDelivery()" class="flex-1 bg-emerald-600 py-2 rounded-md">Intentar entrega ahora</button>
-          <button onclick="nextStep(5)" class="flex-1 border border-slate-600 py-2 rounded-md">Forzar entrega exitosa</button>
-        </div>
-        <p class="mt-3 text-xs text-slate-300">Puedes simular alertas y el sistema entrará en modo de corrección/homeostasis.</p>
-      </div>
-    `;
-  }
+      if (currentStep === 4) {
+        document.getElementById("destinoSeguimiento").innerText = datos.direccion;
+      }
 
-  // Paso 5: Entrega exitosa
-  if (step === 5) {
-    incStat('total'); // registro del envío completado (exitoso)
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3">Entrega Exitosa ✅</h2>
-      <div class="rounded-lg p-4 border ${paquete.fragil === 'si' ? 'border-red-500 bg-red-50/10' : 'border-emerald-500 bg-emerald-50/6'}">
-        <p><strong>Guía:</strong> <span class="text-slate-200">#A${Math.floor(Math.random()*90000 + 10000)}</span></p>
-        <p><strong>Contenido:</strong> ${escapeHtml(paquete.contenido)}</p>
-        <p><strong>Etiqueta:</strong> <span class="${paquete.fragil === 'si' ? 'text-red-300' : 'text-emerald-300'}">${paquete.fragil === 'si' ? 'Frágil 🚨' : 'No frágil ✅'}</span></p>
-        <div class="mt-4 flex gap-2">
-          <button onclick="nextStep(1)" class="flex-1 bg-blue-600 py-2 rounded-md">Registrar nuevo paquete</button>
-          <button onclick="nextStep(4)" class="flex-1 border border-slate-600 py-2 rounded-md">Reenviar (simular)</button>
-        </div>
-      </div>
-    `;
-  }
+      if (currentStep === 5) {
+        document.getElementById("mensajeEntrega").innerHTML =
+          `El paquete con <b>${datos.contenido}</b> fue entregado exitosamente a <b>${datos.nombre}</b> 📞 (${datos.telefono}). 🎉`;
+        document.getElementById("alertaEntrega").style.display = "none";
+      }
+    }
 
-  // Paso 6: Entrega fallida
-  if (step === 6) {
-    incStat('failures');
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3 text-red-400">Entrega Fallida ❌</h2>
-      <div class="rounded-lg p-4 border border-red-600 bg-red-900/10">
-        <p class="font-medium">Problema: ${escapeHtml(lastProblem)}</p>
-        <p class="mt-2 text-sm">Opciones:</p>
-        <div class="mt-3 flex gap-2">
-          <button onclick="nextStep(7)" class="flex-1 bg-red-600 py-2 rounded-md">Abrir corrección / reprogramación</button>
-          <button onclick="nextStep(4)" class="flex-1 border border-slate-600 py-2 rounded-md">Reintentar transporte</button>
-        </div>
-      </div>
-    `;
-  }
+    function simularDesvio() {
+      document.getElementById("alertaTransporte").style.display = "block";
+      document.getElementById("alertaTransporte").innerText = "⚠️ Vehículo desviado, reprogramando ruta...";
+    }
 
-  // Paso 7: Corrección / Homeostasis
-  if (step === 7) {
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3">Corrección del problema (Punto de Homeostasis)</h2>
-      <div class="rounded-lg p-4 border border-slate-600 bg-slate-900/40">
-        <p><strong>Problema detectado:</strong> ${escapeHtml(lastProblem)}</p>
-        <p class="mt-2 text-sm text-slate-300">Acciones disponibles para corregir:</p>
-        <div class="mt-3 grid grid-cols-1 gap-2">
-          <button onclick="actionRetry()" class="w-full bg-emerald-600 py-2 rounded-md">Reintentar (intentar corregir automáticamente)</button>
-          <button onclick="actionReprogram()" class="w-full bg-blue-600 py-2 rounded-md">Reprogramar entrega</button>
-          <button onclick="actionFeedback()" class="w-full border border-slate-600 py-2 rounded-md">Enviar retroalimentación (mejora)</button>
-          <button onclick="discardAndReturn()" class="w-full text-sm text-slate-400 underline">Descartar y volver al transporte</button>
-        </div>
-        <p class="mt-3 text-xs text-slate-400">Cada vez que se corrige o se recibe feedback, el sistema reduce ligeramente la tasa de error (morfogénesis).</p>
-      </div>
-    `;
-  }
+    function simularEntregaFallida() {
+      document.getElementById("alertaEntrega").style.display = "block";
+      document.getElementById("alertaEntrega").innerText = "❌ Entrega fallida, será reprogramada.";
+      document.getElementById("mensajeEntrega").innerText = "";
+    }
 
-  // Paso 8 (Resumen/estadísticas finales) - opcional
-  if (step === 8) {
-    app.innerHTML = `
-      <h2 class="text-lg font-semibold mb-3">Resumen del sistema</h2>
-      <div class="rounded-lg p-4 border border-slate-600 bg-slate-900/30">
-        <div id="summaryContent"></div>
-        <div class="mt-4 flex gap-2">
-          <button onclick="nextStep(1)" class="flex-1 bg-blue-600 py-2 rounded-md">Nuevo envío</button>
-          <button onclick="resetStats()" class="flex-1 border border-slate-600 py-2 rounded-md">Reiniciar estadísticas</button>
-        </div>
-      </div>
-    `;
-    document.getElementById('summaryContent').innerHTML = buildSummaryHtml();
-  }
+    function restart() {
+      document.getElementById("step" + currentStep).classList.remove("active");
+      currentStep = 1;
+      document.getElementById("step1").classList.add("active");
+      document.getElementById("progressBar").style.width = "0%";
+      datos = {};
+      document.getElementById("alertaTransporte").style.display = "none";
+      document.getElementById("alertaEntrega").style.display = "none";
+    }
 
-  // Actualizar panel de estadísticas al final de render
-  renderStats();
-}
+    updateProgress();
+  </script>
 
-/* --- Funciones de acción --- */
-
-// Escapa HTML para prevenir inyección simple en el prototipo
-function escapeHtml(str) {
-  if (!str && str !== 0) return '';
-  return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-}
-
-function guardarDatos() {
-  const n = document.getElementById('nombre').value.trim();
-  const d = document.getElementById('direccion').value.trim();
-  const t = document.getElementById('telefono').value.trim();
-  const p = document.getElementById('peso').value.trim();
-  const c = document.getElementById('contenido').value.trim();
-  const f = document.getElementById('fragil').value;
-
-  const errEl = document.getElementById('regError');
-  errEl.textContent = '';
-
-  // Validaciones básicas
-  if (!n || !d || !t) {
-    errEl.textContent = 'Por favor completa: nombre, dirección y teléfono.';
-    return;
-  }
-
-  paquete = { nombre: n, direccion: d, telefono: t, peso: p || '—', contenido: c || 'Sin descripción', fragil: f };
-  nextStep(2);
-}
-
-// Simulación de clasificación
-function runClassification(auto = true) {
-  // Si auto=true, usa probabilidad; sino usa forzado por forceClass
-  const rate = getMisclassRate();
-  const rnd = Math.random();
-  const misclassified = rnd < rate;
-
-  if (misclassified) {
-    // registro de fallo de clasificación
-    incStat('classFailures');
-    incStat('alerts'); // lo consideramos un alerta relevante
-    lastProblem = 'Paquete mal clasificado (punto entrópico: aumenta la ineficiencia)';
-    // aprendizaje: bajar la tasa de misclass
-    const newRate = Math.max(MIN_MISCLASS_RATE, rate * LEARNING_FACTOR);
-    setMisclassRate(newRate);
-    nextStep(7);
-  } else {
-    nextStep(4); // continuar a transporte (agrupación/transport)
-  }
-}
-
-function forceClass(mode) {
-  if (mode === 'ok') {
-    nextStep(4);
-  } else {
-    incStat('classFailures');
-    incStat('alerts');
-    lastProblem = 'Paquete mal clasificado (forzado)';
-    // aplicar pequeño aprendizaje
-    const rate = getMisclassRate();
-    setMisclassRate(Math.max(MIN_MISCLASS_RATE, rate * LEARNING_FACTOR));
-    nextStep(7);
-  }
-}
-
-// Simular alertas en transporte
-function simulateAlert(type) {
-  incStat('alerts');
-  if (type === 'retraso') {
-    lastProblem = 'Retraso en clasificación (impacta tiempos de entrega)';
-  } else if (type === 'desvio') {
-    lastProblem = 'Vehículo desviado (posible perdida de ruta)';
-  } else {
-    lastProblem = 'Alerta desconocida';
-  }
-  nextStep(7);
-}
-
-// Intento de entrega con probabilidad de fallo
-function attemptDelivery() {
-  // Definimos una tasa baja de fallo de entrega
-  const DELIV_FAIL_RATE = 0.10; // 10% por defecto
-  const rnd = Math.random();
-  if (rnd < DELIV_FAIL_RATE) {
-    lastProblem = 'Entrega fallida (receptor no disponible / problemas logísticos)';
-    incStat('failures');
-    nextStep(6);
-  } else {
-    nextStep(5);
-  }
-}
-
-/* --- Acciones de corrección / homeostasis --- */
-function actionRetry() {
-  // Si el problema fue de clasificación, reintentar clasificación:
-  if (lastProblem.toLowerCase().includes('clasific')) {
-    // reintentar clasificación (menos probabilidad por morfogénesis)
-    runClassification();
-  } else if (lastProblem.toLowerCase().includes('desvi') || lastProblem.toLowerCase().includes('retras')) {
-    // simulamos solución y volvemos a transporte
-    nextStep(4);
-  } else if (lastProblem.toLowerCase().includes('entrega')) {
-    // reintentar entrega con otra probabilidad
-    attemptDelivery();
-  } else {
-    nextStep(4);
-  }
-}
-
-function actionReprogram() {
-  // reprograma: volvemos al transporte pero marcamos como reprogramado y registro
-  lastProblem = 'Reprogramación solicitada';
-  nextStep(4);
-}
-
-function actionFeedback() {
-  // retroalimentación del usuario, se guarda y mejora el sistema
-  incStat('feedbacks');
-  const rate = getMisclassRate();
-  setMisclassRate(Math.max(MIN_MISCLASS_RATE, rate * 0.90)); // feedback reduce tasa más agresivamente
-  nextStep(4);
-}
-
-function discardAndReturn() {
-  nextStep(4);
-}
-
-/* --- Utilidades y navegación --- */
-function nextStep(n) {
-  step = n;
-  // Si llegamos a paso 5 (entrega exitosa) contamos como envío total:
-  if (step === 5) {
-    const s = getStats();
-    s.total = (s.total || 0) + 1;
-    saveStats(s);
-  }
-  renderApp();
-}
-
-function resetAll() {
-  paquete = {};
-  lastProblem = '';
-  step = 1;
-  renderApp();
-}
-
-function resetStats() {
-  const s = { total: 0, failures: 0, classFailures: 0, alerts: 0, feedbacks: 0 };
-  saveStats(s);
-  localStorage.setItem('misclassRate', DEFAULT_MISCLASS_RATE.toString());
-  localStorage.setItem('initialMisclassRate', DEFAULT_MISCLASS_RATE.toString());
-  renderApp();
-}
-
-/* --- Forzar clasificación externa (botones) --- */
-function attemptDeliverySuccessForDemo() {
-  nextStep(5);
-}
-
-/* --- Resumen y estadísticas (panel lateral) --- */
-function renderStats() {
-  const el = document.getElementById('stats');
-  const s = getStats();
-  const misNow = getMisclassRate();
-  const initMis = parseFloat(localStorage.getItem('initialMisclassRate') || DEFAULT_MISCLASS_RATE);
-  const improvement = Math.max(0, (initMis - misNow) / initMis * 100);
-  el.innerHTML = `
-    <div class="grid grid-cols-2 gap-2">
-      <div class="text-xs">Envíos totales</div><div class="text-right font-medium">${s.total}</div>
-      <div class="text-xs">Fallos totales</div><div class="text-right font-medium">${s.failures}</div>
-      <div class="text-xs">Fallos clasificación</div><div class="text-right font-medium">${s.classFailures}</div>
-      <div class="text-xs">Alertas</div><div class="text-right font-medium">${s.alerts}</div>
-      <div class="text-xs">Feedbacks</div><div class="text-right font-medium">${s.feedbacks}</div>
-      <div class="text-xs">Tasa mal clasificación</div><div class="text-right font-medium">${Math.round(misNow*100)}%</div>
-    </div>
-  `;
-  const morpho = document.getElementById('morphoMsg');
-  morpho.innerHTML = `Morfogénesis: la tasa inicial de mala clasificación era ${Math.round(initMis*100)}%, ahora ${Math.round(misNow*100)}% (${Math.round(improvement)}% de mejora acumulada).`;
-}
-
-/* --- Build summary HTML para paso 8 --- */
-function buildSummaryHtml() {
-  const s = getStats();
-  const misNow = getMisclassRate();
-  return `
-    <p><strong>Total envíos:</strong> ${s.total}</p>
-    <p><strong>Fallos totales:</strong> ${s.failures}</p>
-    <p><strong>Fallos por clasificación:</strong> ${s.classFailures}</p>
-    <p><strong>Alertas registradas:</strong> ${s.alerts}</p>
-    <p class="mt-2"><strong>Tasa actual de mala clasificación:</strong> ${Math.round(misNow*100)}%</p>
-    <p class="mt-3 text-sm text-slate-300">Este resumen refleja la retroalimentación (morfogénesis) acumulada: tras fallos y feedbacks, el sistema reduce la tasa de errores y se adapta.</p>
-  `;
-}
-
-/* --- Inicial render --- */
-renderApp();
-
-</script>
 </body>
 </html>
-
